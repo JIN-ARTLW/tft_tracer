@@ -81,7 +81,7 @@
 
             const validCombinations = [];
 
-            function generateCombinations(champions, activeSynergies = new Set(), combination = [], index = 0) {
+            function findCombinations(champions, activeSynergies = new Set(), combination = [], index = 0) {
                 if (activeSynergies.size >= 8) {
                     validCombinations.push([...combination.map(c => c.name)]);
                     return;
@@ -95,14 +95,14 @@
                     currentChampion.synergies.forEach(s => newSynergies.add(s));
 
                     // Prune if adding this champion still cannot reach 8 synergies
-                    if (newSynergies.size < 8 && champions.length - i - 1 + combination.length < 8) continue;
+                    if (newSynergies.size < 8 && combination.length + champions.length - i < 8) continue;
 
                     // Recurse with the current champion included
-                    generateCombinations(champions, newSynergies, [...combination, currentChampion], i + 1);
+                    findCombinations(champions, newSynergies, [...combination, currentChampion], i + 1);
                 }
             }
 
-            generateCombinations(validChampions);
+            findCombinations(validChampions);
 
             const resultsList = document.getElementById('results');
             resultsList.innerHTML = '';
