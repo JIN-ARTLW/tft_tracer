@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Champion Synergy Calculator</title>
+    <title>tft_6</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
@@ -117,6 +117,12 @@
 
                     findCombinations(champions, newCombination, newActiveSynergiesCount, i + 1);
                 }
+            }
+
+            // Skip initial calculations if no valid champions due to maxCost
+            if (validChampions.length === 0) {
+                document.getElementById('results').innerHTML = '<li>No valid combinations found due to cost restrictions.</li>';
+                return;
             }
 
             findCombinations(validChampions);
