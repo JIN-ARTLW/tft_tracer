@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Champion Synergy Calculator 3</title>
+    <title>Champion Synergy Calculator 4</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
@@ -87,7 +87,7 @@
                 return synergyData.requirements.some(req => req <= count);
             }
 
-            function countActiveSynergies(combo) {
+            function calculateActiveSynergies(combo) {
                 const synergyCounts = {};
                 combo.forEach(champ => {
                     champ.synergies.forEach(synergy => {
@@ -97,15 +97,21 @@
                 return Object.keys(synergyCounts).filter(synergy => isSynergyActive(synergy, synergyCounts[synergy])).length;
             }
 
-            function findCombinations(champions, combination = [], index = 0) {
-                const activeSynergies = countActiveSynergies(combination);
-                if (activeSynergies >= 8) {
+            function findCombinations(champions, combination = [], activeSynergiesCount = 0, index = 0) {
+                if (activeSynergiesCount >= 8) {
                     validCombinations.push([...combination.map(c => c.name)]);
                     return;
                 }
 
                 for (let i = index; i < champions.length; i++) {
-                    findCombinations(champions, [...combination, champions[i]], i + 1);
+                    const nextChampion = champions[i];
+                    const newCombination = [...combination, nextChampion];
+                    const newActiveSynergiesCount = calculateActiveSynergies(newCombination);
+
+                    // Prune if it's impossible to reach 8 synergies with remaining champions
+                    if (newActiveSynergiesCount + (champions.length - i - 1) < 8) continue;
+
+                    findCombinations(champions, newCombination, newActiveSynergiesCount, i + 1);
                 }
             }
 
