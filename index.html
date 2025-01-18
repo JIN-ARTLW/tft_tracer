@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Champion Synergy Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        let championsData = [];
+        let synergiesData = [];
+
+        // Load champions data from CSV
+        async function loadChampionsData() {
+            return new Promise((resolve, reject) => {
+                Papa.parse('champions.csv', {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        championsData = results.data.map(row => ({
+                            name: row.Champion,
+                            synergies: row.Synergies.split(','),
+                            cost: parseInt(row.cost, 10)
+                        }));
+                        resolve();
+                    },
+                    error: function(err) {
+                        reject(err);
+                    }
+                });
+            });
+        }
+
+        // Load synergies data from CSV
+        async function loadSynergiesData() {
+            return new Promise((resolve, reject) => {
+                Papa.parse('synergies.csv', {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        synergiesData = results.data.map(row => ({
+                            synergy: row.Synergy,
+                            requirements: row.RequirementStages.split(',').map(Number)
+                        }));
+                        resolve();
+                    },
+                    error: function(err) {
+                        reject(err);
+                    }
+                });
+            });
+        }
+
+        async function displayFilePreviews() {
+            const filePreviewDiv = document.getElementById('file-preview');
+            try {
+                await Promise.all([loadChampionsData(), loadSynergiesData()]);
+
+                console.log('Champions data loaded:', championsData);
+                console.log('Synergies data loaded:', synergiesData);
+
+                // Display the first two rows of each file
+                const championPreview = championsData.slice(0, 2).map(champ => `${champ.name} (${champ.synergies.join(', ')}): ${champ.cost}`).join('<br>');
+                const synergyPreview = synergiesData.slice(0, 2).map(syn => `${syn.synergy}: ${syn.requirements.join(', ')}`).join('<br>');
+
+                filePreviewDiv.innerHTML = `<h3>Champion File Preview:</h3>${championPreview}<h3>Synergy File Preview:</h3>${synergyPreview}`;
+            } catch (err) {
+                console.error('Failed to load data:', err);
+                filePreviewDiv.innerHTML = '<p style="color: red;">Error: Failed to load champion or synergy data. Please check file paths and format.</p>';
+            }
+        }
+
+        async function calculateCombinations() {
+            const inputSynergies = document.getElementById('synergies').value.split(',').map(s => s.trim()).filter(s => s);
+            const maxCost = document.getElementById('max-cost').value ? parseInt(document.getElementById('max-cost').value, 10) : null;
+
+            const targetSynergies = inputSynergies.length > 0 ? inputSynergies : synergiesData.map(s => s.synergy);
+            const validChampions = championsData.filter(champ => maxCost === null || champ.cost <= maxCost);
+
+            const validCombinations = [];
+
+            function generateCombinations(champions, activeSynergies = new Set(), combination = [], index = 0) {
+                if (activeSynergies.size >= 8) {
+                    validCombinations.push([...combination.map(c => c.name)]);
+                    return;
+                }
+
+                for (let i = index; i < champions.length; i++) {
+                    const currentChampion = champions[i];
+
+                    // Add current champion synergies to the active set
+                    const newSynergies = new Set(activeSynergies);
+                    currentChampion.synergies.forEach(s => newSynergies.add(s));
+
+                    // Prune if adding this champion still cannot reach 8 synergies
+                    if (newSynergies.size < 8 && champions.length - i - 1 + combination.length < 8) continue;
+
+                    // Recurse with the current champion included
+                    generateCombinations(champions, newSynergies, [...combination, currentChampion], i + 1);
+                }
+            }
+
+            generateCombinations(validChampions);
+
+            const resultsList = document.getElementById('results');
+            resultsList.innerHTML = '';
+
+            if (validCombinations.length) {
+                validCombinations.forEach(combo => {
+                    const li = document.createElement('li');
+                    li.textContent = combo.join(', ');
+                    resultsList.appendChild(li);
+                });
+            } else {
+                resultsList.innerHTML = '<li>No valid combinations found.</li>';
+            }
+        }
+
+        // Load data on page load
+        window.onload = displayFilePreviews;
+    </script>
+</head>
+<body>
+    <h1>Champion Synergy Calculator</h1>
+
+    <div id="file-preview"></div>
+
+    <div id="app">
+        <label for="synergies">Select Desired Synergies:</label>
+        <input type="text" id="synergies" placeholder="e.g., 정복자, 검은장미단">
+
+        <label for="max-cost">Set Maximum Cost:</label>
+        <input type="number" id="max-cost" placeholder="e.g., 10">
+
+        <button onclick="calculateCombinations()">Calculate Combinations</button>
+
+        <h2>Results</h2>
+        <ul id="results"></ul>
+    </div>
+</body>
+</html>
