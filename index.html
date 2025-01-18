@@ -81,24 +81,31 @@
 
             const validCombinations = [];
 
-            function findCombinations(champions, activeSynergies = new Set(), combination = [], index = 0) {
-                if (activeSynergies.size >= 8) {
+            function isSynergyActive(synergy, count) {
+                const synergyData = synergiesData.find(s => s.synergy === synergy);
+                if (!synergyData) return false;
+                return synergyData.requirements.some(req => req <= count);
+            }
+
+            function countActiveSynergies(combo) {
+                const synergyCounts = {};
+                combo.forEach(champ => {
+                    champ.synergies.forEach(synergy => {
+                        synergyCounts[synergy] = (synergyCounts[synergy] || 0) + 1;
+                    });
+                });
+                return Object.keys(synergyCounts).filter(synergy => isSynergyActive(synergy, synergyCounts[synergy])).length;
+            }
+
+            function findCombinations(champions, combination = [], index = 0) {
+                const activeSynergies = countActiveSynergies(combination);
+                if (activeSynergies >= 8) {
                     validCombinations.push([...combination.map(c => c.name)]);
                     return;
                 }
 
                 for (let i = index; i < champions.length; i++) {
-                    const currentChampion = champions[i];
-
-                    // Add current champion synergies to the active set
-                    const newSynergies = new Set(activeSynergies);
-                    currentChampion.synergies.forEach(s => newSynergies.add(s));
-
-                    // Prune if adding this champion still cannot reach 8 synergies
-                    if (newSynergies.size < 8 && combination.length + champions.length - i < 8) continue;
-
-                    // Recurse with the current champion included
-                    findCombinations(champions, newSynergies, [...combination, currentChampion], i + 1);
+                    findCombinations(champions, [...combination, champions[i]], i + 1);
                 }
             }
 
